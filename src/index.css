@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+.dark-mode {
+    /* background-color: #151515; */
+    background-color: black;
+    color: white;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.light-mode {
+    background-color: #f1f2f6;
+    color: black;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dark-btn{
+    background-color: white;
+    color: black;
+}
+
+.light-btn{
+    background-color: black;
+    color: white;
+}
+
+@layer utilities {
+  /* Scale-up pop-up animation */
+  .animate-popup {
+    animation: popUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  /* Smooth fade down slide for the navbar */
+  .animate-fade-in-down {
+    animation: fadeInDown 0.6s ease-out forwards;
+  }
+}
+
+@keyframes popUp {
+  0% {
+    transform: scale(0.9) translateY(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInDown {
+  0% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes subtlePulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 50px rgba(255,255,255,0.4), inset 0 0 30px rgba(255,255,255,0.2);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 70px rgba(255,255,255,0.5), inset 0 0 40px rgba(255,255,255,0.3);
+  }
+}
+
+.animate-subtle-pulse {
+  animation: subtlePulse 4s ease-in-out infinite alternate;
+}
+
+/* Helper to handle vertical text indicators on the left edge */
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+html {
+  scroll-behavior: smooth;
+}
