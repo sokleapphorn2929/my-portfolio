@@ -3,8 +3,7 @@ import { useState, useRef, useEffect } from "react";
 export function Navbar({ isDarkMode, setIsDarkMode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("About");
-
-  // Track geometry values for the links only
+  const [isScrolling, setIsScrolling] = useState(false); // Track if user is scrolling
   const [indicatorStyle, setIndicatorStyle] = useState({
     left: 0,
     top: 0,
@@ -12,28 +11,26 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
     height: 0,
   });
   const tabsRef = useRef({});
+  const ulRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
 
-  const menuItems = [
-    "About",
-    "Skill",
-    "Project",
-    "Experience",
-    "Contact",
-  ];
+  const menuItems = ["About", "Skill", "Project", "Experience", "Contact"];
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
   };
 
   const handleNavClick = (item) => {
+    // Mark that we're navigating via click
+    setIsScrolling(true);
     setActiveTab(item);
-    setIsOpen(false); // Closes the mobile toggle menu drawer if it's open
+    setIsOpen(false);
 
     const targetSection = document.getElementById(item);
     if (targetSection) {
-      // Offset matches your navbar's height + padding to keep titles visible
-      const navbarOffset = 90; 
-      const elementPosition = targetSection.getBoundingClientRect().top + window.scrollY;
+      const navbarOffset = 90;
+      const elementPosition =
+        targetSection.getBoundingClientRect().top + window.scrollY;
       const offsetPosition = elementPosition - navbarOffset;
 
       window.scrollTo({
@@ -41,45 +38,90 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
         behavior: "smooth",
       });
     }
+
+    // Reset scrolling flag after animation completes
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+    scrollTimeoutRef.current = setTimeout(() => {
+      setIsScrolling(false);
+    }, 800); // Wait for scroll animation to finish
+  };
+
+  const updateIndicatorPosition = () => {
+    const activeElement = tabsRef.current[activeTab];
+    if (activeElement && ulRef.current) {
+      const ulRect = ulRef.current.getBoundingClientRect();
+      const elementRect = activeElement.getBoundingClientRect();
+
+      setIndicatorStyle({
+        left: elementRect.left - ulRect.left,
+        top: elementRect.top - ulRect.top,
+        width: elementRect.width,
+        height: elementRect.height,
+      });
+    }
   };
 
   useEffect(() => {
     const observerOptions = {
       root: null,
-      rootMargin: "-40% 0px -50% 0px", // Triggers when the section crosses into the viewport center
+      rootMargin: "-40% 0px -50% 0px",
       threshold: 0,
     };
 
     const handleIntersection = (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          setActiveTab(entry.target.id);
-        }
-      });
+      // Only update active tab if we're NOT in the middle of a click navigation
+      if (!isScrolling) {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveTab(entry.target.id);
+          }
+        });
+      }
     };
 
-    const observer = new IntersectionObserver(handleIntersection, observerOptions);
+    const observer = new IntersectionObserver(
+      handleIntersection,
+      observerOptions,
+    );
 
     menuItems.forEach((item) => {
       const el = document.getElementById(item);
       if (el) observer.observe(el);
     });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [isScrolling]); // Re-run when isScrolling changes
+
+  // Update indicator when activeTab changes
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      updateIndicatorPosition();
+    });
+  }, [activeTab]);
+
+  // Update on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      updateIndicatorPosition();
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Recalculate dimensions dynamically
+  // Update when mobile menu opens/closes
   useEffect(() => {
-    const activeElement = tabsRef.current[activeTab];
-    if (activeElement) {
-      setIndicatorStyle({
-        left: activeElement.offsetLeft,
-        top: activeElement.offsetTop,
-        width: activeElement.offsetWidth,
-        height: activeElement.offsetHeight,
-      });
+    if (isOpen) {
+      setTimeout(updateIndicatorPosition, 100);
     }
-  }, [activeTab, isOpen]);
+  }, [isOpen]);
 
   return (
     <div className="flex justify-center w-full px-4">
@@ -90,13 +132,12 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
             : "shadow-black/20 outline-white/50"
         } backdrop-blur-md transition-all duration-300 md:h-12 dark:bg-black/20 flex flex-col md:flex-row md:items-center px-4 justify-between`}
       >
-        {/* Top Header Row (Mobile View Header) */}
+        {/* Top Header Row */}
         <div className="flex items-center justify-between w-full md:w-auto h-12 md:h-full">
           <div className="font-bold flex items-center h-full">
             <h2 className="text-lg text-blue-600">SOKLEAP.</h2>
           </div>
 
-          {/* Mobile Right Utility Actions */}
           <div className="flex items-center gap-3 md:hidden">
             <button
               onClick={toggleDarkMode}
@@ -114,7 +155,6 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="lucide lucide-moon"
                 >
                   <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
                 </svg>
@@ -129,7 +169,6 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  className="lucide lucide-sun"
                 >
                   <circle cx="12" cy="12" r="4" />
                   <path d="M12 2v2" />
@@ -159,7 +198,7 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={`lucide lucide-list-filter transition-transform duration-200 ${
+                className={`transition-transform duration-200 ${
                   isOpen ? "rotate-90 text-blue-600 dark:text-blue-400" : ""
                 }`}
               >
@@ -171,7 +210,7 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
           </div>
         </div>
 
-        {/* Navigation Content Area */}
+        {/* Navigation Content */}
         <div
           className={`grid transition-all duration-300 ease-in-out w-full md:flex md:items-center md:gap-4 md:w-auto ${
             isOpen
@@ -180,25 +219,28 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
           }`}
         >
           <div className="overflow-hidden md:overflow-visible flex flex-col md:flex-row md:items-center md:gap-4">
-            {/* Nav Links Container holding the active glass background element */}
             <div className="relative">
-              <ul className="relative flex flex-col gap-1 text-sm font-semibold pt-1 md:pt-0 md:flex-row md:items-center md:gap-1">
-                {/* SMOOTH GLASSY SLIDING BACKDROP */}
+              <ul
+                ref={ulRef}
+                className="relative flex flex-col gap-1 text-sm font-semibold pt-1 pb-2 md:pt-0 md:flex-row md:items-center md:gap-1"
+              >
+                {/* SLIDING INDICATOR */}
                 <div
-                  className="absolute rounded-lg bg-white/5 outline outline-black/5 dark:outline-white/10 backdrop-blur-sm transition-all duration-300 ease-out pointer-events-none"
+                  className="absolute rounded-lg bg-white/5 outline outline-black/5 dark:outline-white/10 backdrop-blur-sm pointer-events-none will-change-transform"
                   style={{
                     transform: `translate3d(${indicatorStyle.left}px, ${indicatorStyle.top}px, 0)`,
                     width: `${indicatorStyle.width}px`,
                     height: `${indicatorStyle.height}px`,
+                    transition:
+                      "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
                   }}
                 />
 
-                {/* ITERATE CONTENT LINKS */}
                 {menuItems.map((item) => (
                   <li key={item} className="w-full md:w-auto">
                     <button
                       ref={(el) => (tabsRef.current[item] = el)}
-                      onClick={() => handleNavClick(item)} // Swapped direct state update for our scroll controller
+                      onClick={() => handleNavClick(item)}
                       className={`w-full text-center md:text-left md:w-auto block px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer hover:text-blue-600 ${
                         activeTab === item ? "text-blue-600 font-bold" : ""
                       }`}
@@ -210,7 +252,7 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
               </ul>
             </div>
 
-            {/* Dark Mode Toggle for Desktop (Kept outside the absolute tracking wrapper) */}
+            {/* Dark Mode Toggle for Desktop */}
             <div className="hidden md:block border-l border-black/10 dark:border-white/10 pl-4">
               <button
                 onClick={toggleDarkMode}
@@ -228,7 +270,6 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="lucide lucide-sun"
                   >
                     <circle cx="12" cy="12" r="4" />
                     <path d="M12 2v2" />
@@ -251,7 +292,6 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="lucide lucide-moon"
                   >
                     <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401" />
                   </svg>
