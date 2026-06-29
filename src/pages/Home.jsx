@@ -34,7 +34,7 @@ export default function Home() {
 };
 
   return (
-    <div className="min-h-screen relative flex items-center px-6 py-6 md:py-0 md:px-28 overflow-hidden">
+    <div className="min-h-screen relative flex items-center px-6 py-7 md:py-0 md:px-28 overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 z-0">
         <div
