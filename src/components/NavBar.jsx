@@ -222,7 +222,7 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
             <div className="relative">
               <ul
                 ref={ulRef}
-                className="relative flex flex-col gap-1 text-sm font-semibold pt-1 pb-2 md:pt-0 md:flex-row md:items-center md:gap-1"
+                className="relative flex flex-col gap-1 text-sm font-semibold pt-1 pb-2 md:pb-0 md:pt-0 md:flex-row md:items-center md:gap-1"
               >
                 {/* SLIDING INDICATOR */}
                 <div
