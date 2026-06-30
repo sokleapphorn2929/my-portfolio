@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from "react";
 export function Navbar({ isDarkMode, setIsDarkMode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("About");
-  const [isScrolling, setIsScrolling] = useState(false); // Track if user is scrolling
   const [indicatorStyle, setIndicatorStyle] = useState({
     left: 0,
     top: 0,
@@ -13,6 +12,8 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
   const tabsRef = useRef({});
   const ulRef = useRef(null);
   const scrollTimeoutRef = useRef(null);
+  const isProgrammaticScroll = useRef(false); // Use ref instead of state
+  const observerRef = useRef(null);
 
   const menuItems = ["About", "Skill", "Project", "Experience", "Contact"];
 
@@ -21,8 +22,8 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
   };
 
   const handleNavClick = (item) => {
-    // Mark that we're navigating via click
-    setIsScrolling(true);
+    // Mark that we're navigating via click using ref
+    isProgrammaticScroll.current = true;
     setActiveTab(item);
     setIsOpen(false);
 
@@ -44,8 +45,8 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
       clearTimeout(scrollTimeoutRef.current);
     }
     scrollTimeoutRef.current = setTimeout(() => {
-      setIsScrolling(false);
-    }, 800); // Wait for scroll animation to finish
+      isProgrammaticScroll.current = false;
+    }, 800);
   };
 
   const updateIndicatorPosition = () => {
@@ -63,6 +64,7 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
     }
   };
 
+  // Setup IntersectionObserver - only once
   useEffect(() => {
     const observerOptions = {
       root: null,
@@ -72,7 +74,7 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
 
     const handleIntersection = (entries) => {
       // Only update active tab if we're NOT in the middle of a click navigation
-      if (!isScrolling) {
+      if (!isProgrammaticScroll.current) {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             setActiveTab(entry.target.id);
@@ -81,23 +83,25 @@ export function Navbar({ isDarkMode, setIsDarkMode }) {
       }
     };
 
-    const observer = new IntersectionObserver(
+    observerRef.current = new IntersectionObserver(
       handleIntersection,
       observerOptions,
     );
 
     menuItems.forEach((item) => {
       const el = document.getElementById(item);
-      if (el) observer.observe(el);
+      if (el) observerRef.current.observe(el);
     });
 
     return () => {
-      observer.disconnect();
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current);
       }
     };
-  }, [isScrolling]); // Re-run when isScrolling changes
+  }, []); // Empty dependency array - run once
 
   // Update indicator when activeTab changes
   useEffect(() => {
